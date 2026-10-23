@@ -106,36 +106,61 @@ class ScopeViewModel(
     private val _friendRequests = MutableStateFlow<List<FriendRequest>>(emptyList())
     val friendRequests: StateFlow<List<FriendRequest>> = _friendRequests.asStateFlow()
 
+    private val _startupError = MutableStateFlow<String?>(null)
+    val startupError: StateFlow<String?> = _startupError.asStateFlow()
+
+    fun dismissStartupError() {
+        _startupError.value = null
+    }
+
     init {
         viewModelScope.launch {
-            currentUser.collect { user ->
-                if (user != null) {
-                    launch {
-                        firestoreRepository.getUserProfile(user.uid).collect { profile ->
-                            if (profile != null) {
-                                val isDev = com.example.data.model.isSuperDeveloperEmail(profile.email)
-                                val resolved = if (isDev) {
-                                    profile.copy(
-                                        isDeveloper = true,
-                                        equippedTitle = "المطور الأسمى 👑"
-                                    )
-                                } else profile
-                                _userProfile.value = resolved
-                            } else {
-                                _userProfile.value = null
+            try {
+                currentUser.collect { user ->
+                    if (user != null) {
+                        try {
+                            launch {
+                                try {
+                                    firestoreRepository.getUserProfile(user.uid).collect { profile ->
+                                        if (profile != null) {
+                                            val isDev = com.example.data.model.isSuperDeveloperEmail(profile.email)
+                                            val resolved = if (isDev) {
+                                                profile.copy(
+                                                    isDeveloper = true,
+                                                    equippedTitle = "المطور الأسمى 👑"
+                                                )
+                                            } else profile
+                                            _userProfile.value = resolved
+                                        } else {
+                                            _userProfile.value = null
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    android.util.Log.e("ScopeViewModel", "User profile stream error: ${e.message}", e)
+                                }
                             }
+                            launch { try { firestoreRepository.getSubjects(user.uid).collect { _subjects.value = it } } catch (e: Exception) {} }
+                            launch { try { firestoreRepository.getTasks(user.uid).collect { _tasks.value = it } } catch (e: Exception) {} }
+                            launch { try { firestoreRepository.getExams(user.uid).collect { _exams.value = it } } catch (e: Exception) {} }
+                            launch { try { firestoreRepository.getStudySessions(user.uid).collect { _studySessions.value = it } } catch (e: Exception) {} }
+                            launch { try { firestoreRepository.getClassOccurrences(user.uid).collect { _occurrences.value = it } } catch (e: Exception) {} }
+                            launch { try { firestoreRepository.getFriends(user.uid).collect { _friends.value = it } } catch (e: Exception) {} }
+                            launch { try { firestoreRepository.getFriendRequests(user.uid).collect { _friendRequests.value = it } } catch (e: Exception) {} }
+                            
+                            try {
+                                firestoreRepository.seedInitialAcademicDataIfEmpty(user.uid, user.displayName ?: "", user.email ?: "")
+                            } catch (e: Exception) {
+                                android.util.Log.e("ScopeViewModel", "Seed initial data error: ${e.message}", e)
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("ScopeViewModel", "Firebase user session sync error: ${e.message}", e)
+                            _startupError.value = "تنبيه: تعذر الاتصال بالخادم، يعمل التطبيق في وضع الاتصال المحلي والزائر."
                         }
                     }
-                    launch { firestoreRepository.getSubjects(user.uid).collect { _subjects.value = it } }
-                    launch { firestoreRepository.getTasks(user.uid).collect { _tasks.value = it } }
-                    launch { firestoreRepository.getExams(user.uid).collect { _exams.value = it } }
-                    launch { firestoreRepository.getStudySessions(user.uid).collect { _studySessions.value = it } }
-                    launch { firestoreRepository.getClassOccurrences(user.uid).collect { _occurrences.value = it } }
-                    launch { firestoreRepository.getFriends(user.uid).collect { _friends.value = it } }
-                    launch { firestoreRepository.getFriendRequests(user.uid).collect { _friendRequests.value = it } }
-                    
-                    firestoreRepository.seedInitialAcademicDataIfEmpty(user.uid, user.displayName ?: "", user.email ?: "")
                 }
+            } catch (e: Exception) {
+                android.util.Log.e("ScopeViewModel", "Startup fatal error: ${e.message}", e)
+                _startupError.value = "خطأ في بدء التشغيل: ${e.localizedMessage ?: "تحقق من اتصالك بالإنترنت"}"
             }
         }
     }
