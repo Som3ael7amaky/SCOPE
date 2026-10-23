@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // User private data isolation: subjects, tasks, lessons, study sessions, etc.
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+      match /{subcollection}/{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // Public student profile cards (for SCOPE ID search and friends)
+    match /public_profiles/{profileId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Community Academic Challenges
+    match /community_challenges/{challengeId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Developer Live Analytics & Announcements
+    match /dev_analytics/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}

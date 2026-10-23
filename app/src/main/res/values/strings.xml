@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">SCOPE</string>
+    <string name="default_web_client_id">223806205027-j3qbu3o44gfb4dkq52724io3vvco0vkf.apps.googleusercontent.com</string>
+    <string name="tagline">See the bigger picture</string>
+    <string name="tagline_ar">الرؤية الشاملة لرحلتك الأكاديمية</string>
+    <string name="tab_home">الرئيسية</string>
+    <string name="tab_study">الدراسة</string>
+    <string name="tab_schedule">الجدول</string>
+    <string name="tab_projects">المشاريع</string>
+    <string name="tab_sola">صولا</string>
+    <string name="widget_name">حالة SCOPE الحية</string>
+    <string name="widget_description">رادار صولا المباشر والشعلة الأكاديمية ومؤقت التركيز الفوري</string>
+</resources>

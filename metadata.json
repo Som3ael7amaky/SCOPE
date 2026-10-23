@@ -1,0 +1,6 @@
+{
+  "name": "SCOPE",
+  "description": "Student Operating System that understands your academic context. Powered by Sola AI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
