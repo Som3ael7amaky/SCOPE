@@ -18,7 +18,8 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.TimeoutCancellationException
 
 class NoGoogleAccountException(message: String) : Exception(message)
 
@@ -38,7 +39,7 @@ class AuthRepository(
 
     suspend fun signInWithGoogle(context: Context): Result<FirebaseUser> {
         return try {
-            val operationResult = withTimeoutOrNull(10_000L) {
+            val operationResult = withTimeout(20_000L) {
                 val credentialManager = CredentialManager.create(context)
                 val serverClientId = context.getString(R.string.default_web_client_id)
 
@@ -56,17 +57,15 @@ class AuthRepository(
                     val googleIdToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
                     val authCredential = GoogleAuthProvider.getCredential(googleIdToken, null)
                     val authResult = auth.signInWithCredential(authCredential).await()
-                    val user = authResult.user ?: throw IllegalStateException("Firebase user was null after Google sign-in")
-                    user
+                    authResult.user ?: throw IllegalStateException("Firebase user was null after Google sign-in")
                 } else {
                     throw IllegalStateException("استجابة غير متوقعة من مزود هوية Google")
                 }
             }
-            if (operationResult != null) {
-                Result.success(operationResult)
-            } else {
-                Result.failure(Exception("تعذر الاتصال بالخادم، تحقق من الشبكة وانقر لإعادة المحاولة"))
-            }
+            Result.success(operationResult)
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Log.e("AuthRepository", "Google sign-in timed out", e)
+            Result.failure(Exception("انتهت مهلة الاتصال بالخادم، يرجى التحقق من الشبكة والمحاولة لاحقاً"))
         } catch (e: NoCredentialException) {
             Log.w("AuthRepository", "Graceful NoCredentialException: No Google Account found on device", e)
             Result.failure(
@@ -97,15 +96,14 @@ class AuthRepository(
 
     suspend fun signInWithEmail(email: String, pass: String): Result<FirebaseUser> {
         return try {
-            val user = withTimeoutOrNull(10_000L) {
+            val user = withTimeout(20_000L) {
                 val result = auth.signInWithEmailAndPassword(email.trim().lowercase(), pass).await()
                 result.user ?: throw IllegalStateException("بيانات المستخدم غير صالحة")
             }
-            if (user != null) {
-                Result.success(user)
-            } else {
-                Result.failure(Exception("تعذر الاتصال بالخادم، تحقق من الشبكة"))
-            }
+            Result.success(user)
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Log.e("AuthRepository", "Email sign-in timed out", e)
+            Result.failure(Exception("انتهت مهلة الاتصال بالخادم، يرجى التحقق من الشبكة والمحاولة لاحقاً"))
         } catch (e: Exception) {
             Log.e("AuthRepository", "Email sign-in failed: ${e.message}", e)
             Result.failure(e)
@@ -118,7 +116,7 @@ class AuthRepository(
         displayName: String
     ): Result<FirebaseUser> {
         return try {
-            val user = withTimeoutOrNull(10_000L) {
+            val user = withTimeout(20_000L) {
                 val result = auth.createUserWithEmailAndPassword(email.trim().lowercase(), pass).await()
                 val createdUser = result.user ?: throw IllegalStateException("فشل إنشاء المستخدم")
                 val profileUpdates = com.google.firebase.auth.userProfileChangeRequest {
@@ -127,11 +125,10 @@ class AuthRepository(
                 createdUser.updateProfile(profileUpdates).await()
                 createdUser
             }
-            if (user != null) {
-                Result.success(user)
-            } else {
-                Result.failure(Exception("تعذر الاتصال بالخادم، تحقق من الشبكة"))
-            }
+            Result.success(user)
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Log.e("AuthRepository", "Email sign-up timed out", e)
+            Result.failure(Exception("انتهت مهلة الاتصال بالخادم، يرجى التحقق من الشبكة والمحاولة لاحقاً"))
         } catch (e: Exception) {
             Log.e("AuthRepository", "Email sign-up failed: ${e.message}", e)
             Result.failure(e)
@@ -140,15 +137,13 @@ class AuthRepository(
 
     suspend fun sendPasswordReset(email: String): Result<Unit> {
         return try {
-            val success = withTimeoutOrNull(10_000L) {
+            withTimeout(20_000L) {
                 auth.sendPasswordResetEmail(email.trim().lowercase()).await()
-                true
             }
-            if (success == true) {
-                Result.success(Unit)
-            } else {
-                Result.failure(Exception("تعذر الاتصال بالخادم، تحقق من الشبكة"))
-            }
+            Result.success(Unit)
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Log.e("AuthRepository", "Password reset timed out", e)
+            Result.failure(Exception("انتهت مهلة الاتصال بالخادم، يرجى التحقق من الشبكة والمحاولة لاحقاً"))
         } catch (e: Exception) {
             Log.e("AuthRepository", "Password reset failed: ${e.message}", e)
             Result.failure(e)
@@ -158,15 +153,13 @@ class AuthRepository(
     suspend fun updatePassword(newPassword: String): Result<Unit> {
         return try {
             val user = auth.currentUser ?: return Result.failure(Exception("المستخدم غير مسجل الدخول"))
-            val success = withTimeoutOrNull(10_000L) {
+            withTimeout(20_000L) {
                 user.updatePassword(newPassword).await()
-                true
             }
-            if (success == true) {
-                Result.success(Unit)
-            } else {
-                Result.failure(Exception("تعذر الاتصال بالخادم، تحقق من الشبكة"))
-            }
+            Result.success(Unit)
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Log.e("AuthRepository", "Password update timed out", e)
+            Result.failure(Exception("انتهت مهلة الاتصال بالخادم، يرجى التحقق من الشبكة والمحاولة لاحقاً"))
         } catch (e: Exception) {
             Log.e("AuthRepository", "Password update failed: ${e.message}", e)
             Result.failure(e)

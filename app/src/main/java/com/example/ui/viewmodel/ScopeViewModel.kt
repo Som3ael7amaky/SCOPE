@@ -106,6 +106,9 @@ class ScopeViewModel(
     private val _friendRequests = MutableStateFlow<List<FriendRequest>>(emptyList())
     val friendRequests: StateFlow<List<FriendRequest>> = _friendRequests.asStateFlow()
 
+    private val _studyNotes = MutableStateFlow<List<StudyNote>>(emptyList())
+    val studyNotes: StateFlow<List<StudyNote>> = _studyNotes.asStateFlow()
+
     private val _startupError = MutableStateFlow<String?>(null)
     val startupError: StateFlow<String?> = _startupError.asStateFlow()
 
@@ -146,6 +149,7 @@ class ScopeViewModel(
                             launch { try { firestoreRepository.getClassOccurrences(user.uid).collect { _occurrences.value = it } } catch (e: Exception) {} }
                             launch { try { firestoreRepository.getFriends(user.uid).collect { _friends.value = it } } catch (e: Exception) {} }
                             launch { try { firestoreRepository.getFriendRequests(user.uid).collect { _friendRequests.value = it } } catch (e: Exception) {} }
+                            launch { try { firestoreRepository.getStudyNotes(user.uid).collect { _studyNotes.value = it } } catch (e: Exception) {} }
                             
                             try {
                                 firestoreRepository.seedInitialAcademicDataIfEmpty(user.uid, user.displayName ?: "", user.email ?: "")
@@ -779,12 +783,8 @@ class ScopeViewModel(
             _isSigningIn.value = true
             _signInError.value = null
             try {
-                val result = withTimeoutOrNull(10_000L) {
-                    authRepository.signInWithEmail(email, pass)
-                }
-                if (result == null) {
-                    _signInError.value = "تعذر الاتصال بالخادم، تحقق من الشبكة"
-                } else if (result.isFailure) {
+                val result = authRepository.signInWithEmail(email, pass)
+                if (result.isFailure) {
                     _signInError.value = result.exceptionOrNull()?.message ?: "فشل تسجيل الدخول، تحقق من البريد وكلمة المرور"
                 }
             } catch (e: Exception) {
@@ -809,12 +809,8 @@ class ScopeViewModel(
             _isSigningIn.value = true
             _signInError.value = null
             try {
-                val result = withTimeoutOrNull(10_000L) {
-                    authRepository.signUpWithEmail(email, pass, name)
-                }
-                if (result == null) {
-                    _signInError.value = "تعذر الاتصال بالخادم، تحقق من الشبكة"
-                } else if (result.isFailure) {
+                val result = authRepository.signUpWithEmail(email, pass, name)
+                if (result.isFailure) {
                     _signInError.value = result.exceptionOrNull()?.message ?: "فشل إنشاء الحساب، يرجى المحاولة لاحقاً"
                 }
             } catch (e: Exception) {
@@ -1162,7 +1158,46 @@ class ScopeViewModel(
                 _exams.value = emptyList()
                 _studySessions.value = emptyList()
                 _occurrences.value = emptyList()
+                _studyNotes.value = emptyList()
             }
         }
     }
+
+    fun saveStudyNote(note: StudyNote) {
+        val user = currentUser.value
+        if (user != null) {
+            viewModelScope.launch {
+                try {
+                    firestoreRepository.saveStudyNote(user.uid, note)
+                } catch (e: Exception) {
+                    android.util.Log.e("ScopeViewModel", "Save study note error: ${e.message}", e)
+                }
+            }
+        } else if (_isGuestMode.value) {
+            val current = _studyNotes.value
+            val existing = current.find { it.id == note.id }
+            if (existing != null) {
+                _studyNotes.value = current.map { if (it.id == note.id) note else it }
+            } else {
+                val newNote = if (note.id.isBlank()) note.copy(id = java.util.UUID.randomUUID().toString()) else note
+                _studyNotes.value = listOf(newNote) + current
+            }
+        }
+    }
+
+    fun deleteStudyNote(noteId: String) {
+        val user = currentUser.value
+        if (user != null) {
+            viewModelScope.launch {
+                try {
+                    firestoreRepository.deleteStudyNote(user.uid, noteId)
+                } catch (e: Exception) {
+                    android.util.Log.e("ScopeViewModel", "Delete study note error: ${e.message}", e)
+                }
+            }
+        } else if (_isGuestMode.value) {
+            _studyNotes.value = _studyNotes.value.filter { it.id != noteId }
+        }
+    }
 }
+

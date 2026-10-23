@@ -554,3 +554,13 @@ data class FriendRequest(
     val senderScopeId: String = "",
     val timestamp: Long = System.currentTimeMillis()
 )
+
+data class StudyNote(
+    val id: String = "",
+    val title: String = "",
+    val content: String = "",
+    val subjectId: String = "",
+    val subjectName: String = "",
+    val timestamp: Long = System.currentTimeMillis()
+)
+

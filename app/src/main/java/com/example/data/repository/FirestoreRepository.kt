@@ -579,4 +579,28 @@ class FirestoreRepository(
             }
         } catch (_: Exception) {}
     }
+
+    fun getStudyNotes(userId: String): Flow<List<com.example.data.model.StudyNote>> = callbackFlow {
+        val subscription = userDoc(userId).collection("study_notes")
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, _ ->
+                val list = snapshot?.documents?.mapNotNull { it.toObject(com.example.data.model.StudyNote::class.java)?.copy(id = it.id) } ?: emptyList()
+                trySend(list)
+            }
+        awaitClose { subscription.remove() }
+    }
+
+    suspend fun saveStudyNote(userId: String, note: com.example.data.model.StudyNote) {
+        val docRef = if (note.id.isBlank()) {
+            userDoc(userId).collection("study_notes").document()
+        } else {
+            userDoc(userId).collection("study_notes").document(note.id)
+        }
+        docRef.set(note.copy(id = docRef.id)).await()
+    }
+
+    suspend fun deleteStudyNote(userId: String, noteId: String) {
+        userDoc(userId).collection("study_notes").document(noteId).delete().await()
+    }
 }
+
