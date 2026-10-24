@@ -81,7 +81,7 @@ class SolaAiService {
             return@withContext SolaLocalMatrixEngine.generateLocalResponse(prompt, subjects, tasks, exams)
         }
 
-        val modelName = if (useHighThinking) "gemini-4-argon" else "gemini-3.8-flash"
+        val modelName = if (useHighThinking) "gemini-2.5-pro" else "gemini-2.5-flash"
         val url = "https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent?key=$apiKey"
 
         val subjectsSummary = subjects.joinToString(", ") { "${it.name} (${it.code})" }

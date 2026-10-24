@@ -166,6 +166,32 @@ class AuthRepository(
         }
     }
 
+    suspend fun sendEmailVerification(): Result<Unit> {
+        return try {
+            val user = auth.currentUser ?: return Result.failure(Exception("المستخدم غير مسجل الدخول"))
+            withTimeout(15_000L) {
+                user.sendEmailVerification().await()
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e("AuthRepository", "Send email verification failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun reloadUserAndCheckVerified(): Result<Boolean> {
+        return try {
+            val user = auth.currentUser ?: return Result.failure(Exception("المستخدم غير مسجل الدخول"))
+            withTimeout(15_000L) {
+                user.reload().await()
+            }
+            Result.success(user.isEmailVerified)
+        } catch (e: Exception) {
+            Log.e("AuthRepository", "Reload user verification failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     fun signOut() {
         auth.signOut()
     }

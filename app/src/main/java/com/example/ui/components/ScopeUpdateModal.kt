@@ -28,6 +28,7 @@ import com.example.ui.theme.ScopePrimary
 fun ScopeUpdateModal(
     versionName: String,
     updateUrl: String,
+    releaseNotes: String? = null,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -79,7 +80,7 @@ fun ScopeUpdateModal(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "الإصدار v$versionName جاهز للتحميل مع ميزات المجتمع الجديدة وتحسينات الاستقرار.",
+                    text = if (!releaseNotes.isNullOrBlank()) releaseNotes else "الإصدار v$versionName جاهز للتحميل مع تحسينات الاستقرار وميزات SCOPE الجديدة.",
                     fontFamily = CairoFontFamily,
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center,

@@ -22,7 +22,8 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
 class FirestoreRepository(
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
+    private val localDatabase: com.example.data.local.ScopeDatabase? = null
 ) {
     private fun userDoc(userId: String) = firestore.collection("users").document(userId)
 
@@ -174,6 +175,31 @@ class FirestoreRepository(
                 doc.reference.delete().await()
             }
         } catch (_: Exception) {}
+    }
+
+    fun getProjects(userId: String): Flow<List<com.example.data.projects.ScopeProject>> = callbackFlow {
+        val subscription = userDoc(userId).collection("projects")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+                val list = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(com.example.data.projects.ScopeProject::class.java)?.copy(id = doc.id)
+                } ?: emptyList()
+                trySend(list)
+            }
+        awaitClose { subscription.remove() }
+    }
+
+    suspend fun saveProject(userId: String, project: com.example.data.projects.ScopeProject) {
+        val doc = if (project.id.isNotBlank()) {
+            userDoc(userId).collection("projects").document(project.id)
+        } else {
+            userDoc(userId).collection("projects").document()
+        }
+        val target = if (project.id.isBlank()) project.copy(id = doc.id) else project
+        doc.set(target).await()
     }
 
     suspend fun deleteProject(userId: String, projectId: String) {
@@ -596,10 +622,17 @@ class FirestoreRepository(
         } else {
             userDoc(userId).collection("study_notes").document(note.id)
         }
-        docRef.set(note.copy(id = docRef.id)).await()
+        val target = note.copy(id = docRef.id)
+        try {
+            localDatabase?.studyNoteDao()?.insertOrUpdate(com.example.data.local.StudyNoteEntity.fromStudyNote(target))
+        } catch (_: Exception) {}
+        docRef.set(target).await()
     }
 
     suspend fun deleteStudyNote(userId: String, noteId: String) {
+        try {
+            localDatabase?.studyNoteDao()?.deleteById(noteId)
+        } catch (_: Exception) {}
         userDoc(userId).collection("study_notes").document(noteId).delete().await()
     }
 }

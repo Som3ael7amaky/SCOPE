@@ -593,6 +593,7 @@ fun ScopeMainApp(
                                 subjects = subjects,
                                 projects = projects,
                                 onOpenProjectDetail = { proj -> viewModel.openProjectDetail(proj) },
+                                onCreateProject = { name, desc, budget -> viewModel.createProject(name, desc, budget) },
                                 onToggleTask = { id, status -> viewModel.toggleTask(id, status) },
                                 onAddTask = { title, subj, prio, effort -> viewModel.addNewTask(title, subj, prio, effort) }
                             )
@@ -862,6 +863,7 @@ fun ScopeMainApp(
                 ScopeUpdateModal(
                     versionName = config.latestVersionName,
                     updateUrl = config.updateUrl,
+                    releaseNotes = config.releaseNotes,
                     onDismiss = { viewModel.dismissUpdateModal() }
                 )
             }

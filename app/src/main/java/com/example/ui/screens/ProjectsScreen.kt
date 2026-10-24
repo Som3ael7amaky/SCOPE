@@ -83,6 +83,7 @@ fun ProjectsScreen(
     subjects: List<Subject> = emptyList(),
     projects: List<ScopeProject> = emptyList(),
     onOpenProjectDetail: (ScopeProject) -> Unit = {},
+    onCreateProject: (String, String, Double) -> Unit = { _, _, _ -> },
     onToggleTask: (String, Boolean) -> Unit = { _, _ -> },
     onAddTask: (String, Subject, TaskPriority, Int) -> Unit = { _, _, _, _ -> },
     modifier: Modifier = Modifier
@@ -892,6 +893,8 @@ fun ProjectsScreen(
                                 onClick = {
                                     if (newProjName.isNotBlank()) {
                                         soundStudio.playComplete()
+                                        val budget = initialBudget.toDoubleOrNull() ?: 0.0
+                                        onCreateProject(newProjName, newProjGoal, budget)
                                         showCreateProjectDialog = false
                                     }
                                 },

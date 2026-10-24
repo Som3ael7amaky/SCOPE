@@ -15,8 +15,8 @@ enum class ProjectRole(val titleAr: String, val badgeEmoji: String) {
 
 data class ProjectMember(
     val id: String = UUID.randomUUID().toString(),
-    val displayName: String,
-    val scopeId: String,
+    val displayName: String = "",
+    val scopeId: String = "",
     val role: ProjectRole = ProjectRole.MEMBER,
     val customRoleTitle: String = "عضو",
     val isExternal: Boolean = false,
@@ -29,27 +29,27 @@ data class ProjectMember(
 
 data class FinancialTransaction(
     val id: String = UUID.randomUUID().toString(),
-    val title: String,
-    val amountFiat: Double, // positive = income, negative = expense
-    val category: String, // e.g. "مساهمات الأعضاء", "طباعة ونسخ", "استضافة سحابية"
-    val loggedByName: String,
-    val isExpense: Boolean,
+    val title: String = "",
+    val amountFiat: Double = 0.0, // positive = income, negative = expense
+    val category: String = "", // e.g. "مساهمات الأعضاء", "طباعة ونسخ", "استضافة سحابية"
+    val loggedByName: String = "",
+    val isExpense: Boolean = false,
     val timestamp: Long = System.currentTimeMillis()
 )
 
 data class ProjectFinancials(
-    val balanceFiat: Double = 1450.0,
-    val totalIncome: Double = 2200.0,
-    val totalExpenses: Double = 750.0,
+    val balanceFiat: Double = 0.0,
+    val totalIncome: Double = 0.0,
+    val totalExpenses: Double = 0.0,
     val fiatCurrency: String = "SAR",
-    val pooledSparks: Int = 680,
-    val pooledTokens: Int = 45,
+    val pooledSparks: Int = 0,
+    val pooledTokens: Int = 0,
     val transactions: List<FinancialTransaction> = emptyList()
 )
 
 data class ProjectElection(
     val id: String = UUID.randomUUID().toString(),
-    val title: String,
+    val title: String = "",
     val isOpen: Boolean = true,
     val candidates: List<ProjectMember> = emptyList(),
     val votes: Map<String, String> = emptyMap(), // voterMemberId -> candidateMemberId
@@ -60,10 +60,10 @@ data class ProjectElection(
 
 data class ProjectActivityItem(
     val id: String = UUID.randomUUID().toString(),
-    val eventType: String, // "ELECTION_STARTED", "ELECTION_CLOSED", "FINANCIAL_TRANSACTION", "MEMBER_JOINED", "TASK_COMPLETED", "NOTE_ADDED", "FILE_UPLOADED", "MILESTONE_COMPLETED"
-    val title: String,
-    val description: String,
-    val actorName: String,
+    val eventType: String = "", // "ELECTION_STARTED", "ELECTION_CLOSED", "FINANCIAL_TRANSACTION", "MEMBER_JOINED", "TASK_COMPLETED", "NOTE_ADDED", "FILE_UPLOADED", "MILESTONE_COMPLETED"
+    val title: String = "",
+    val description: String = "",
+    val actorName: String = "",
     val timestamp: Long = System.currentTimeMillis()
 ) {
     fun isDeliverable(): Boolean {
@@ -73,17 +73,17 @@ data class ProjectActivityItem(
 
 data class ProjectNote(
     val id: String = UUID.randomUUID().toString(),
-    val title: String,
-    val content: String,
-    val authorName: String,
+    val title: String = "",
+    val content: String = "",
+    val authorName: String = "",
     val timestamp: Long = System.currentTimeMillis()
 )
 
 data class ScopeProject(
     val id: String = UUID.randomUUID().toString(),
-    val name: String,
-    val code: String,
-    val description: String,
+    val name: String = "",
+    val code: String = "",
+    val description: String = "",
     val ownerProfileId: String = "owner_default",
     val isSoloProject: Boolean = false,
     val members: List<ProjectMember> = emptyList(),
@@ -95,7 +95,7 @@ data class ScopeProject(
     val milestones: List<ProjectMilestone> = emptyList(),
     val attachments: List<ProjectAttachment> = emptyList(),
     val colorHex: String = "#38BDF8",
-    val progressPercentage: Float = 0.68f
+    val progressPercentage: Float = 0.0f
 )
 
 object ProjectsHubEngine {

@@ -60,7 +60,9 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun EmailVerificationScreen(
-    userEmail: String = "student@example.com",
+    userEmail: String = "",
+    onResendEmail: () -> Unit = {},
+    onCheckEmailVerified: (() -> Unit)? = null,
     onVerified: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -238,13 +240,14 @@ fun EmailVerificationScreen(
                                 if (countdown == 0) {
                                     countdown = 45
                                     isResending = true
+                                    onResendEmail()
                                 }
                             },
                             enabled = countdown == 0,
                             modifier = Modifier.testTag("resend_otp_btn")
                         ) {
                             Text(
-                                text = "إعادة إرسال الرمز",
+                                text = "إعادة إرسال الرابط",
                                 fontFamily = CairoFontFamily,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
@@ -257,11 +260,15 @@ fun EmailVerificationScreen(
 
                     Button(
                         onClick = {
-                            if (otpCode.length == 6 || otpCode == "123456" || otpCode.isNotBlank()) {
+                            if (otpCode.length == 6) {
+                                onVerified()
+                            } else if (onCheckEmailVerified != null) {
+                                onCheckEmailVerified()
+                            } else {
                                 onVerified()
                             }
                         },
-                        enabled = otpCode.isNotBlank(),
+                        enabled = otpCode.length == 6 || onCheckEmailVerified != null,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)
@@ -270,7 +277,7 @@ fun EmailVerificationScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF38BDF8))
                     ) {
                         Text(
-                            text = "متابعة التحقق",
+                            text = if (otpCode.length == 6) "تأكيد الرمز" else "تم تأكيد الرابط عبر البريد",
                             fontFamily = CairoFontFamily,
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,

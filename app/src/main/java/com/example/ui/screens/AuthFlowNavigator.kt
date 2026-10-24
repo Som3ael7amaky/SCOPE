@@ -29,7 +29,7 @@ fun AuthFlowNavigator(
     onContinueAsGuest: () -> Unit
 ) {
     var currentStep by remember { mutableStateOf(AuthStep.SPLASH) }
-    var registeredEmail by remember { mutableStateOf("student@example.com") }
+    var registeredEmail by remember { mutableStateOf("") }
 
     when (currentStep) {
         AuthStep.SPLASH -> {

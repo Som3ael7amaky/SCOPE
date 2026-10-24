@@ -150,6 +150,18 @@ class ScopeViewModel(
                             launch { try { firestoreRepository.getFriends(user.uid).collect { _friends.value = it } } catch (e: Exception) {} }
                             launch { try { firestoreRepository.getFriendRequests(user.uid).collect { _friendRequests.value = it } } catch (e: Exception) {} }
                             launch { try { firestoreRepository.getStudyNotes(user.uid).collect { _studyNotes.value = it } } catch (e: Exception) {} }
+                            launch {
+                                try {
+                                    firestoreRepository.getProjects(user.uid).collect { list ->
+                                        if (list.isNotEmpty()) {
+                                            _projects.value = list
+                                            if (_activeProject.value == null || !list.any { it.id == _activeProject.value?.id }) {
+                                                _activeProject.value = list.firstOrNull()
+                                            }
+                                        }
+                                    }
+                                } catch (_: Exception) {}
+                            }
                             
                             try {
                                 firestoreRepository.seedInitialAcademicDataIfEmpty(user.uid, user.displayName ?: "", user.email ?: "")
@@ -618,7 +630,78 @@ class ScopeViewModel(
         }
     }
 
-    private fun updateProjectInList(updated: ScopeProject) { _activeProject.value = updated; _projects.value = _projects.value.map { if (it.id == updated.id) updated else it } }
+    fun createProject(name: String, description: String, initialBudget: Double) {
+        val user = _userProfile.value
+        val uid = currentUser.value?.uid ?: "m1"
+        val owner = com.example.data.projects.ProjectMember(
+            id = uid,
+            displayName = user?.displayName?.ifBlank { "أنت" } ?: "أنت",
+            scopeId = user?.scopeId?.ifBlank { "@me" } ?: "@me",
+            role = com.example.data.projects.ProjectRole.OWNER,
+            avatarId = user?.avatarId ?: "avatar_scholar_owl",
+            focusEfficiency = 100,
+            streakDays = user?.flameCount ?: 1
+        )
+        val initialTransaction = if (initialBudget > 0) {
+            listOf(
+                com.example.data.projects.FinancialTransaction(
+                    title = "الميزانية الأولية للمشروع",
+                    amountFiat = initialBudget,
+                    category = "تمويل تأسيسي",
+                    loggedByName = owner.displayName,
+                    isExpense = false
+                )
+            )
+        } else emptyList()
+
+        val financials = com.example.data.projects.ProjectFinancials(
+            balanceFiat = initialBudget,
+            totalIncome = initialBudget,
+            totalExpenses = 0.0,
+            fiatCurrency = "SAR",
+            transactions = initialTransaction
+        )
+
+        val newProject = ScopeProject(
+            id = java.util.UUID.randomUUID().toString(),
+            name = name.trim(),
+            code = "PRJ-${(100..999).random()}",
+            description = description.trim(),
+            ownerProfileId = uid,
+            members = listOf(owner),
+            financials = financials,
+            colorHex = listOf("#38BDF8", "#8B5CF6", "#10B981", "#F59E0B").random()
+        )
+
+        _projects.value = listOf(newProject) + _projects.value
+        _activeProject.value = newProject
+
+        val currentUid = currentUser.value?.uid
+        if (currentUid != null) {
+            viewModelScope.launch {
+                try {
+                    firestoreRepository.saveProject(currentUid, newProject)
+                } catch (e: Exception) {
+                    android.util.Log.e("ScopeViewModel", "Save new project failed", e)
+                }
+            }
+        }
+    }
+
+    private fun updateProjectInList(updated: ScopeProject) {
+        _activeProject.value = updated
+        _projects.value = _projects.value.map { if (it.id == updated.id) updated else it }
+        val currentUid = currentUser.value?.uid
+        if (currentUid != null) {
+            viewModelScope.launch {
+                try {
+                    firestoreRepository.saveProject(currentUid, updated)
+                } catch (e: Exception) {
+                    android.util.Log.e("ScopeViewModel", "Save project update failed", e)
+                }
+            }
+        }
+    }
 
     // Control Center
     private val _solaSpeechStyle = MutableStateFlow("DETAILED")

@@ -148,7 +148,7 @@ fun SolaScreen(
                                     .padding(horizontal = 6.dp, vertical = 1.dp)
                             ) {
                                 Text(
-                                    text = if (isHighThinkingMode) "gemini-4-argon" else "gemini-3.8-flash",
+                                    text = if (isHighThinkingMode) "gemini-2.5-pro" else "gemini-2.5-flash",
                                     fontFamily = CairoFontFamily,
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
