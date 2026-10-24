@@ -122,6 +122,7 @@ fun StudyScreen(
     var showSoundStudioSheet by remember { mutableStateOf(false) }
     var showVisionDialog by remember { mutableStateOf(false) }
     var showPodcastPlayer by remember { mutableStateOf(false) }
+    var showGpaTimeMachineDialog by remember { mutableStateOf(false) }
 
     var showCentralizedLibraryModal by remember { mutableStateOf(false) }
     var pendingUploadUri by remember { mutableStateOf<Uri?>(null) }
@@ -410,13 +411,26 @@ fun StudyScreen(
                         Text("4.75 / 5.00", fontFamily = CairoFontFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = ScopePrimary)
                     }
                     Spacer(modifier = Modifier.height(10.dp))
-                    Button(
-                        onClick = { /* Open GPA calc */ },
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A))
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("فتح حاسبة المعدل المتوقع 🚀", fontFamily = CairoFontFamily, fontSize = 12.sp)
+                        Button(
+                            onClick = { showGpaTimeMachineDialog = true },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A))
+                        ) {
+                            Text("فتح حاسبة المعدل المتوقع 🚀", fontFamily = CairoFontFamily, fontSize = 11.sp)
+                        }
+                        Button(
+                            onClick = { showSoundStudioSheet = true },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = ScopePrimary)
+                        ) {
+                            Text("استوديو الصوت 🎧", fontFamily = CairoFontFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
@@ -668,6 +682,13 @@ fun StudyScreen(
         SolaAudioMiniPlayer(
             synthesizer = podcastSynthesizer,
             onDismiss = { showPodcastPlayer = false }
+        )
+    }
+
+    if (showGpaTimeMachineDialog) {
+        GpaTimeMachineDialog(
+            subjects = subjects,
+            onDismiss = { showGpaTimeMachineDialog = false }
         )
     }
 }

@@ -63,7 +63,7 @@ class AuthRepository(
         Log.e(TAG_AUTH, "FirebaseAuthException [Code: $errorCode]: $localizedMsg", e)
 
         val userMsg = when {
-            errorCode.contains("INVALID_EMAIL") || errorCode.contains("INVALID-EMAIL") ->
+            errorCode.contains("INVALID_EMAIL") || errorCode.contains("INVALID-EMAIL") || localizedMsg.contains("badly formatted", ignoreCase = true) ->
                 "عنوان البريد الإلكتروني غير صحيح أو بصيغة غير صالحة."
             errorCode.contains("WRONG_PASSWORD") || errorCode.contains("WRONG-PASSWORD") || errorCode.contains("INVALID_CREDENTIAL") ->
                 "كلمة المرور غير صحيحة. يرجى التأكد وإعادة المحاولة."
@@ -187,9 +187,9 @@ class AuthRepository(
             Log.w(TAG_AUTH, "User cancelled Google Sign-In prompt", e)
             return@withContext Result.failure(Exception("تم إلغاء عملية تسجيل الدخول بواسطة المستخدم"))
         } catch (e: NoCredentialException) {
-            Log.e(TAG_AUTH, "NoCredentialException in CredentialManager: ${e.message}", e)
+            Log.d(TAG_AUTH, "NoCredentialException in CredentialManager (${e.message}), falling back to GoogleSignIn intent...")
         } catch (e: GetCredentialException) {
-            Log.e(TAG_AUTH, "GetCredentialException: type=${e.type}, message=${e.message}", e)
+            Log.d(TAG_AUTH, "GetCredentialException in CredentialManager (type=${e.type}), falling back to GoogleSignIn intent...")
         } catch (e: FirebaseAuthException) {
             return@withContext Result.failure(parseFirebaseAuthException(e))
         } catch (e: Exception) {
@@ -255,6 +255,11 @@ class AuthRepository(
             return@withContext Result.failure(Exception("يرجى إدخال البريد الإلكتروني وكلمة المرور."))
         }
 
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches()) {
+            Log.e(TAG_AUTH, "Invalid email format attempted: $cleanEmail")
+            return@withContext Result.failure(Exception("عنوان البريد الإلكتروني غير صحيح. يرجى إدخال بريد إلكتروني صالح (مثال: user@example.com)."))
+        }
+
         return@withContext try {
             val user = withTimeout(20_000L) {
                 val result = auth.signInWithEmailAndPassword(cleanEmail, pass).await()
@@ -278,6 +283,10 @@ class AuthRepository(
         val cleanEmail = email.trim().lowercase()
         if (cleanEmail.isBlank() || pass.isBlank()) {
             return@withContext Result.failure(Exception("يرجى إدخال البريد الإلكتروني وكلمة المرور."))
+        }
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches()) {
+            Log.e(TAG_AUTH, "Invalid email format attempted for signup: $cleanEmail")
+            return@withContext Result.failure(Exception("صيغة البريد الإلكتروني غير صحيحة. يرجى إدخال بريد إلكتروني صالح (مثال: user@example.com)."))
         }
         if (pass.length < 6) {
             return@withContext Result.failure(Exception("كلمة المرور قصيرة جداً. يجب أن تحتوي على 6 أحرف على الأقل."))
@@ -307,6 +316,10 @@ class AuthRepository(
         val cleanEmail = email.trim().lowercase()
         if (cleanEmail.isBlank()) {
             return@withContext Result.failure(Exception("يرجى إدخال البريد الإلكتروني الخاص بحسابك."))
+        }
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches()) {
+            Log.e(TAG_AUTH, "Invalid email format attempted for password reset: $cleanEmail")
+            return@withContext Result.failure(Exception("عنوان البريد الإلكتروني غير صحيح. يرجى إدخال بريد إلكتروني صالح."))
         }
 
         return@withContext try {

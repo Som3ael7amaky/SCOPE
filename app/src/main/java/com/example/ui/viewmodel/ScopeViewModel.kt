@@ -492,6 +492,37 @@ class ScopeViewModel(
         triggerGuideEmotion(SolaEmotionState.HAPPY_CELEBRATION, "تم تثبيت الهدف الأكاديمي: %.2f 🎯".format(targetGpa), "تم تحديث خارطة الطريق الأكاديمية.", "مراجعة المهام", "HOME")
     }
 
+    fun recordStudySessionMinutes(durationMinutes: Int) {
+        val user = currentUser.value
+        val subj = _selectedFocusSubject.value
+        val session = StudySession(
+            subjectId = subj?.id ?: "",
+            subjectName = subj?.name ?: "دراسة عامة",
+            durationMinutes = durationMinutes,
+            timestamp = System.currentTimeMillis()
+        )
+        _studySessions.value = listOf(session) + _studySessions.value
+        if (user != null) {
+            viewModelScope.launch {
+                try {
+                    firestoreRepository.recordStudySession(user.uid, session)
+                    val xpEarned = durationMinutes * 10
+                    val sparksEarned = durationMinutes * 2
+                    firestoreRepository.rewardSparksAndXp(user.uid, sparksEarned, xpEarned)
+                } catch (e: Exception) {
+                    android.util.Log.e("ScopeViewModel", "Error saving study session: ${e.message}", e)
+                }
+            }
+        }
+        triggerGuideEmotion(
+            SolaEmotionState.HAPPY_CELEBRATION,
+            "أحسنت! أنجزت $durationMinutes دقيقة تركيز ⚡",
+            "تم تسجيل الجلسة وكسب المكافآت الأكاديمية.",
+            "استعرض الجدول",
+            "SCHEDULE"
+        )
+    }
+
     // Guilds
     private val _activeGuild = MutableStateFlow<StudyGuild?>(StudyGuildsEngine.getSampleGuilds().first())
     val activeGuild: StateFlow<StudyGuild?> = _activeGuild.asStateFlow()
@@ -961,12 +992,20 @@ class ScopeViewModel(
         }
     }
 
-    fun signInWithEmail(email: String, pass: String) {
+    fun signInWithEmail(input: String, pass: String) {
         viewModelScope.launch {
             _isSigningIn.value = true
             _signInError.value = null
+            var emailToUse = input.trim().lowercase()
             try {
-                val result = authRepository.signInWithEmail(email, pass)
+                if (!android.util.Patterns.EMAIL_ADDRESS.matcher(emailToUse).matches()) {
+                    val resolved = firestoreRepository.lookupEmailByScopeIdOrPhone(emailToUse)
+                    if (!resolved.isNullOrBlank()) {
+                        emailToUse = resolved.trim().lowercase()
+                    }
+                }
+
+                val result = authRepository.signInWithEmail(emailToUse, pass)
                 if (result.isSuccess) {
                     val user = result.getOrNull()!!
                     checkAndElevateSuperAdmin(user)
@@ -1018,11 +1057,19 @@ class ScopeViewModel(
         }
     }
 
-    fun sendPasswordReset(email: String, onResult: ((Boolean, String) -> Unit)? = null) {
+    fun sendPasswordReset(input: String, onResult: ((Boolean, String) -> Unit)? = null) {
         viewModelScope.launch {
             try {
+                var emailToUse = input.trim().lowercase()
+                if (!android.util.Patterns.EMAIL_ADDRESS.matcher(emailToUse).matches()) {
+                    val resolved = firestoreRepository.lookupEmailByScopeIdOrPhone(emailToUse)
+                    if (!resolved.isNullOrBlank()) {
+                        emailToUse = resolved.trim().lowercase()
+                    }
+                }
+
                 val result = withTimeoutOrNull(10_000L) {
-                    authRepository.sendPasswordReset(email)
+                    authRepository.sendPasswordReset(emailToUse)
                 }
                 if (result != null && result.isSuccess) {
                     onResult?.invoke(true, "تم إرسال رابط استعادة كلمة المرور إلى بريدك الإلكتروني بنجاح 📧")
@@ -1186,14 +1233,72 @@ class ScopeViewModel(
         }
     }
 
-    fun addNewClassOccurrence(subject: Subject, dayOfWeek: Int, start: String, end: String, room: String) {
+    fun addNewClassOccurrence(
+        context: Context,
+        occurrence: ClassOccurrence
+    ) {
+        val targetId = occurrence.id.ifBlank { java.util.UUID.randomUUID().toString() }
+        val targetOccurrence = occurrence.copy(id = targetId)
+
         currentUser.value?.let { user ->
-            viewModelScope.launch { firestoreRepository.addClassOccurrence(user.uid, ClassOccurrence(subjectId = subject.id, subjectName = subject.name, dayOfWeek = dayOfWeek, startTime = start, endTime = end, room = room)) }
+            viewModelScope.launch {
+                firestoreRepository.addClassOccurrence(user.uid, targetOccurrence)
+                try {
+                    com.example.data.local.ScopeDatabase.getInstance(context)
+                        .scheduleEventDao()
+                        .insertOrUpdate(com.example.data.local.ScheduleEventEntity.fromClassOccurrence(targetOccurrence))
+                } catch (e: Exception) {
+                    android.util.Log.e("ScopeViewModel", "Failed to save schedule event to local Room DB: ${e.message}")
+                }
+            }
         } ?: run {
             if (_isGuestMode.value) {
-                _occurrences.value = _occurrences.value + ClassOccurrence(id = java.util.UUID.randomUUID().toString(), subjectId = subject.id, subjectName = subject.name, dayOfWeek = dayOfWeek, startTime = start, endTime = end, room = room)
+                _occurrences.value = _occurrences.value + targetOccurrence
+                viewModelScope.launch {
+                    try {
+                        com.example.data.local.ScopeDatabase.getInstance(context)
+                            .scheduleEventDao()
+                            .insertOrUpdate(com.example.data.local.ScheduleEventEntity.fromClassOccurrence(targetOccurrence))
+                    } catch (e: Exception) {
+                        android.util.Log.e("ScopeViewModel", "Failed to save schedule event to local Room DB: ${e.message}")
+                    }
+                }
             }
         }
+
+        // Schedule Alarm via Custom Alarm Engine
+        com.example.notification.ScopeAlarmScheduler.scheduleAlarm(context, targetOccurrence)
+    }
+
+    fun deleteClassOccurrence(context: Context, occurrenceId: String) {
+        currentUser.value?.let { user ->
+            viewModelScope.launch {
+                firestoreRepository.deleteClassOccurrence(user.uid, occurrenceId)
+                try {
+                    com.example.data.local.ScopeDatabase.getInstance(context)
+                        .scheduleEventDao()
+                        .deleteById(occurrenceId)
+                } catch (e: Exception) {
+                    android.util.Log.e("ScopeViewModel", "Failed to delete schedule event from local Room DB: ${e.message}")
+                }
+            }
+        } ?: run {
+            if (_isGuestMode.value) {
+                _occurrences.value = _occurrences.value.filter { it.id != occurrenceId }
+                viewModelScope.launch {
+                    try {
+                        com.example.data.local.ScopeDatabase.getInstance(context)
+                            .scheduleEventDao()
+                            .deleteById(occurrenceId)
+                    } catch (e: Exception) {
+                        android.util.Log.e("ScopeViewModel", "Failed to delete schedule event from local Room DB: ${e.message}")
+                    }
+                }
+            }
+        }
+
+        // Cancel scheduled alarm
+        com.example.notification.ScopeAlarmScheduler.cancelAlarm(context, occurrenceId)
     }
 
     // Timer

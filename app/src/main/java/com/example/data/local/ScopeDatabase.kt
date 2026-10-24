@@ -5,9 +5,20 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [StudyNoteEntity::class], version = 1, exportSchema = false)
+@Database(
+    entities = [
+        StudyNoteEntity::class,
+        ScheduleEventEntity::class,
+        CourseEntity::class,
+        CourseNoteEntity::class
+    ],
+    version = 3,
+    exportSchema = false
+)
 abstract class ScopeDatabase : RoomDatabase() {
     abstract fun studyNoteDao(): StudyNoteDao
+    abstract fun scheduleEventDao(): ScheduleEventDao
+    abstract fun courseDao(): CourseDao
 
     companion object {
         @Volatile

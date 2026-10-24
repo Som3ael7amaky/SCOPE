@@ -287,9 +287,15 @@ class FirestoreRepository(
         awaitClose { subscription.remove() }
     }
 
-    suspend fun addClassOccurrence(userId: String, occurrence: ClassOccurrence) {
-        val doc = userDoc(userId).collection("occurrences").document()
-        doc.set(occurrence.copy(id = doc.id)).await()
+    suspend fun addClassOccurrence(userId: String, occurrence: ClassOccurrence): String {
+        val doc = if (occurrence.id.isNotBlank()) userDoc(userId).collection("occurrences").document(occurrence.id) else userDoc(userId).collection("occurrences").document()
+        val target = occurrence.copy(id = doc.id)
+        doc.set(target).await()
+        return doc.id
+    }
+
+    suspend fun deleteClassOccurrence(userId: String, occurrenceId: String) {
+        userDoc(userId).collection("occurrences").document(occurrenceId).delete().await()
     }
 
     suspend fun getUserProfileOnce(userId: String): UserProfile? {

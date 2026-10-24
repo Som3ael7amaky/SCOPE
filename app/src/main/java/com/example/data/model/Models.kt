@@ -139,11 +139,18 @@ data class StudySession(
 data class ClassOccurrence(
     @DocumentId val id: String = "",
     val subjectId: String = "",
-    val subjectName: String = "",
-    val dayOfWeek: Int = 1, // 1 = Sunday, 2 = Monday, etc.
+    val subjectName: String = "", // Used as Event Title
+    val dayOfWeek: Int = 1, // 1 = الأحد (Sunday) ... 7 = السبت (Saturday)
     val startTime: String = "09:00",
     val endTime: String = "10:30",
-    val room: String = "Hall A",
+    val room: String = "القاعة 101",
+    val eventType: String = "RECURRING", // "RECURRING" or "ONE_TIME"
+    val category: String = "ACADEMIC", // "ACADEMIC", "WORK", "SELF_DEV", "PERSONAL"
+    val categoryColorHex: String = "#38BDF8", // Default Academic Blue
+    val specificDate: String = "", // e.g. "2026-10-24" if ONE_TIME
+    val audioUri: String = "", // Custom Audio MP3/WAV file URI
+    val hasAlarm: Boolean = true,
+    val notes: String = "",
     val status: OccurrenceStatus = OccurrenceStatus.SCHEDULED
 )
 

@@ -59,12 +59,21 @@ class LoginViewModel(
         }
     }
 
-    fun signInWithEmail(email: String, pass: String) {
+    fun signInWithEmail(input: String, pass: String) {
         viewModelScope.launch {
             _uiState.value = AuthUiState.Loading
-            Log.i(TAG_AUTH, "LoginViewModel: Starting signInWithEmail flow for $email")
+            var emailToUse = input.trim().lowercase()
+            Log.i(TAG_AUTH, "LoginViewModel: Starting signInWithEmail flow for $emailToUse")
             try {
-                val result = authRepository.signInWithEmail(email, pass)
+                if (!android.util.Patterns.EMAIL_ADDRESS.matcher(emailToUse).matches()) {
+                    val resolved = firestoreRepository.lookupEmailByScopeIdOrPhone(emailToUse)
+                    if (!resolved.isNullOrBlank()) {
+                        Log.i(TAG_AUTH, "Resolved Scope ID/Phone '$emailToUse' to email: $resolved")
+                        emailToUse = resolved.trim().lowercase()
+                    }
+                }
+
+                val result = authRepository.signInWithEmail(emailToUse, pass)
                 if (result.isSuccess) {
                     val user = result.getOrNull()!!
                     Log.i(TAG_AUTH, "LoginViewModel: Email Sign-In succeeded for user=${user.uid}")

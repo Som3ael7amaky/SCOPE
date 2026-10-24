@@ -67,10 +67,13 @@ import com.example.ui.screens.AvatarStudioDialog
 import com.example.ui.screens.BurnoutShieldDialog
 import com.example.ui.components.ScopeChangelogDialog
 import com.example.ui.components.ScopeUpdateModal
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.outlined.Timer
 import com.example.ui.screens.CommunityHubScreen
 import com.example.ui.screens.ControlCenterDialog
 import com.example.ui.screens.DeveloperControlPanelDialog
 import com.example.ui.screens.ExamSimulatorDialog
+import com.example.ui.screens.FocusStudioScreen
 import com.example.ui.screens.GpaTimeMachineDialog
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.ProfileStudioScreen
@@ -101,6 +104,7 @@ import com.example.ui.viewmodel.ScopeViewModel
 sealed class Screen(val title: String, val filledIcon: ImageVector, val outlinedIcon: ImageVector, val tag: String) {
     object Home : Screen("الرئيسية", Icons.Filled.Home, Icons.Outlined.Home, "tab_home")
     object Study : Screen("الدراسة", Icons.Filled.School, Icons.Outlined.School, "tab_study")
+    object Focus : Screen("التركيز", Icons.Filled.Timer, Icons.Outlined.Timer, "tab_focus")
     object Schedule : Screen("الجدول", Icons.Filled.DateRange, Icons.Outlined.DateRange, "tab_schedule")
     object Projects : Screen("المشاريع", Icons.Filled.Folder, Icons.Outlined.Folder, "tab_projects")
     object Community : Screen("المجتمع", Icons.Filled.Group, Icons.Outlined.Group, "tab_community")
@@ -325,6 +329,7 @@ fun ScopeMainApp(
     val screens = listOf(
         Screen.Home,
         Screen.Study,
+        Screen.Focus,
         Screen.Schedule,
         Screen.Projects,
         Screen.Community,
@@ -350,6 +355,7 @@ fun ScopeMainApp(
         showSearchScreen || showProfileStudio || showSettingsScreen -> activeThemePack.homeBgRes
         currentScreen == Screen.Home -> activeThemePack.homeBgRes
         currentScreen == Screen.Study -> activeThemePack.studyBgRes
+        currentScreen == Screen.Focus -> activeThemePack.studyBgRes
         currentScreen == Screen.Schedule -> activeThemePack.scheduleBgRes
         currentScreen == Screen.Projects -> activeThemePack.projectsBgRes
         currentScreen == Screen.Community -> activeThemePack.campusBgRes
@@ -605,11 +611,16 @@ fun ScopeMainApp(
                                 recommendation = viewModel.getActionableRecommendation().explanation
                             )
 
+                            Screen.Focus -> FocusStudioScreen(
+                                onSessionCompleted = { mins -> viewModel.recordStudySessionMinutes(mins) }
+                            )
+
                             Screen.Schedule -> ScheduleScreen(
                                 occurrences = occurrences,
                                 subjects = subjects,
                                 availableWindows = viewModel.calculateAvailableWindows(),
-                                onAddOccurrence = { subj, day, s, e, r -> viewModel.addNewClassOccurrence(subj, day, s, e, r) }
+                                onAddOccurrence = { occurrence -> viewModel.addNewClassOccurrence(context, occurrence) },
+                                onDeleteOccurrence = { id -> viewModel.deleteClassOccurrence(context, id) }
                             )
 
                             Screen.Projects -> ProjectsScreen(
