@@ -8,6 +8,13 @@ plugins {
   alias(libs.plugins.google.services)
 }
 
+// Auto-restore google-services.json if missing (e.g. after AI Studio sync/reset)
+val rootGoogleServices = rootProject.file("google-services.json")
+val appGoogleServices = file("google-services.json")
+if (rootGoogleServices.exists() && !appGoogleServices.exists()) {
+  rootGoogleServices.copyTo(appGoogleServices, overwrite = true)
+}
+
 android {
   namespace = "com.example"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
