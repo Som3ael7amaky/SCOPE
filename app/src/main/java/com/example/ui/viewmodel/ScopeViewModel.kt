@@ -130,6 +130,7 @@ class ScopeViewModel(
                                         if (profile != null) {
                                             val resolved = if (isDev) {
                                                 profile.copy(
+                                                    role = "developer",
                                                     isDeveloper = true,
                                                     isPro = true,
                                                     equippedTitle = "المطور الأسمى 👑",
@@ -139,7 +140,7 @@ class ScopeViewModel(
                                                 )
                                             } else profile
                                             _userProfile.value = resolved
-                                            if (isDev && (!profile.isDeveloper || !profile.isPro)) {
+                                            if (isDev && (profile.role != "developer" || !profile.isDeveloper || !profile.isPro)) {
                                                 firestoreRepository.saveUserProfile(resolved)
                                             }
                                         } else {
@@ -872,19 +873,47 @@ class ScopeViewModel(
         viewModelScope.launch {
             _isSigningIn.value = true
             _signInError.value = null
+            android.util.Log.i("AuthException", "ScopeViewModel: Initiating signInWithGoogle")
             try {
-                val result = withTimeoutOrNull(10_000L) {
-                    authRepository.signInWithGoogle(context)
-                }
-                if (result == null) {
-                    _signInError.value = "تعذر الاتصال بالخادم، تحقق من الشبكة وانقر لإعادة المحاولة"
-                } else if (result.isFailure) {
+                val result = authRepository.signInWithGoogle(context)
+                if (result.isSuccess) {
+                    val user = result.getOrNull()!!
+                    android.util.Log.i("AuthException", "ScopeViewModel: Google Sign-In SUCCESS for email=${user.email}")
+
+                    // Super Admin Enforcement for ismailhamaky@gmail.com
+                    val email = user.email?.trim()?.lowercase() ?: ""
+                    if (email == "ismailhamaky@gmail.com") {
+                        android.util.Log.i("AuthException", "SUPER ADMIN DETECTED ($email). Enforcing role='developer'...")
+                        try {
+                            val existing = firestoreRepository.getUserProfileOnce(user.uid)
+                            val updatedProfile = (existing ?: UserProfile(uid = user.uid, email = email)).copy(
+                                email = "ismailhamaky@gmail.com",
+                                displayName = user.displayName?.ifBlank { "المطور إسماعيل 👑" } ?: "المطور إسماعيل 👑",
+                                role = "developer",
+                                isDeveloper = true,
+                                isPro = true,
+                                equippedTitle = "المطور الأسمى 👑",
+                                sparks = 99999,
+                                tokens = 9999,
+                                level = 99
+                            )
+                            firestoreRepository.saveUserProfile(updatedProfile)
+                            _userProfile.value = updatedProfile
+                            android.util.Log.i("AuthException", "SUPER ADMIN PROFILE INJECTED IN FIRESTORE!")
+                        } catch (e: Exception) {
+                            android.util.Log.e("AuthException", "Failed to elevate super admin in Firestore: ${e.message}", e)
+                        }
+                    }
+                } else {
                     val ex = result.exceptionOrNull()
                     if (ex !is androidx.credentials.exceptions.GetCredentialCancellationException) {
-                        _signInError.value = ex?.message ?: "تعذر الاتصال بالخادم، تحقق من الشبكة"
+                        val msg = ex?.message ?: "تعذر إكمال تسجيل الدخول بواسطة Google"
+                        android.util.Log.e("AuthException", "ScopeViewModel: Google Sign-In failed with message: $msg", ex)
+                        _signInError.value = msg
                     }
                 }
             } catch (e: Exception) {
+                android.util.Log.e("AuthException", "ScopeViewModel: Unhandled exception in signInWithGoogle: ${e.message}", e)
                 _signInError.value = e.message ?: "تعذر الاتصال بالخادم، تحقق من الشبكة"
             } finally {
                 _isSigningIn.value = false

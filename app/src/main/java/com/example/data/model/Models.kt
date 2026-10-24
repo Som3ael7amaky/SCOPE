@@ -36,6 +36,7 @@ data class UserProfile(
     @DocumentId val uid: String = "",
     val email: String = "",
     val displayName: String = "",
+    val role: String = "student",
     val scopeId: String = "",
     val academicMajor: String = "",
     val university: String = "جامعة الملك سعود",
