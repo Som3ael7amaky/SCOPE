@@ -12,6 +12,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -32,6 +34,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,8 +52,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.ui.theme.CairoFontFamily
-import com.example.ui.theme.PlusJakartaSansFamily
 import com.example.ui.theme.ScopePrimary
+
+data class OnboardingStep(
+    val title: String,
+    val subtitle: String,
+    val mascotRes: Int
+)
 
 @Composable
 fun WelcomeScreen(
@@ -57,6 +67,28 @@ fun WelcomeScreen(
     onContinueAsGuest: () -> Unit,
     onSkip: () -> Unit
 ) {
+    var pagerStep by remember { mutableIntStateOf(0) }
+
+    val steps = listOf(
+        OnboardingStep(
+            title = "Your academic journey, smarter\n(رحلتك الأكاديمية بشكل أذكى)",
+            subtitle = "نظام تشغيل الطلاب الذكي SCOPE يجمع جدولك، مهامك، وذكاء صولا الاصطناعي في مكان واحد.",
+            mascotRes = R.drawable.sola_happy
+        ),
+        OnboardingStep(
+            title = "Manage projects & courses\n(إدارة المشاريع والمقررات)",
+            subtitle = "نظم مشاريعك الجامعية، تتبع درجاتك، وتواصل مع زملائك في فرق العمل بكفاءة عالية.",
+            mascotRes = R.drawable.sola_thinking
+        ),
+        OnboardingStep(
+            title = "Smart Assistant & Memos\n(مساعد ذكي وملاحظات متقدمة)",
+            subtitle = "استفد من خرائط المفاهيم، البطاقات التفاعلية، ونظام الملاحظات المتقدم لتوثيق أفكارك الدراسية.",
+            mascotRes = R.drawable.sola_happy
+        )
+    )
+
+    val currentStep = steps[pagerStep]
+
     val infiniteTransition = rememberInfiniteTransition(label = "WelcomeFloat")
     val floatOffsetY by infiniteTransition.animateFloat(
         initialValue = -7f,
@@ -129,7 +161,7 @@ fun WelcomeScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.sola_happy),
+                    painter = painterResource(id = currentStep.mascotRes),
                     contentDescription = "Sola Mascot",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.size(105.dp)
@@ -138,21 +170,38 @@ fun WelcomeScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
+            // Step Indicator Dots
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                steps.forEachIndexed { index, _ ->
+                    Box(
+                        modifier = Modifier
+                            .size(if (index == pagerStep) 24.dp else 8.dp, 8.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(if (index == pagerStep) Color(0xFF38BDF8) else Color(0xFF334155))
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
             Text(
-                text = "رحلتك الأكاديمية بشكل أذكى",
+                text = currentStep.title,
                 fontFamily = CairoFontFamily,
                 fontWeight = FontWeight.Bold,
-                fontSize = 24.sp,
+                fontSize = 22.sp,
                 color = Color(0xFFF8FAFC),
                 textAlign = TextAlign.Center,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "SCOPE يساعدك على التخطيط، التنظيم، والتفوق الأكاديمي بذكاء عبر رفيقة الذكاء الاصطناعي صولا.",
+                text = currentStep.subtitle,
                 fontFamily = CairoFontFamily,
                 fontWeight = FontWeight.Normal,
                 fontSize = 14.sp,
@@ -163,7 +212,7 @@ fun WelcomeScreen(
                 overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(36.dp))
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -178,24 +227,46 @@ fun WelcomeScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Button(
-                        onClick = onNavigateToSignUp,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                            .testTag("welcome_signup_btn"),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF38BDF8))
-                    ) {
-                        Text(
-                            text = "ابدأ الآن (إنشاء حساب)",
-                            fontFamily = CairoFontFamily,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = Color.Black,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                    if (pagerStep < steps.size - 1) {
+                        Button(
+                            onClick = { pagerStep += 1 },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp)
+                                .testTag("welcome_next_btn"),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF38BDF8))
+                        ) {
+                            Text(
+                                text = "التالي ➡️",
+                                fontFamily = CairoFontFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = Color.Black,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    } else {
+                        Button(
+                            onClick = onNavigateToSignUp,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp)
+                                .testTag("welcome_signup_btn"),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF38BDF8))
+                        ) {
+                            Text(
+                                text = "ابدأ الآن (إنشاء حساب)",
+                                fontFamily = CairoFontFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = Color.Black,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
 
                     OutlinedButton(

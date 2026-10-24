@@ -24,12 +24,14 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -81,6 +83,7 @@ import com.example.ui.screens.ScopeJourneyScreen
 import com.example.ui.screens.ScopeSearchScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.screens.AuthFlowNavigator
+import com.example.ui.screens.NotesScreen
 import com.example.ui.screens.SignInScreen
 import com.example.ui.screens.SolaOnboardingWizard
 import com.example.ui.screens.SolaPersonalityDialog
@@ -102,6 +105,7 @@ sealed class Screen(val title: String, val filledIcon: ImageVector, val outlined
     object Projects : Screen("المشاريع", Icons.Filled.Folder, Icons.Outlined.Folder, "tab_projects")
     object Community : Screen("المجتمع", Icons.Filled.Group, Icons.Outlined.Group, "tab_community")
     object Sola : Screen("صولا", Icons.Filled.AutoAwesome, Icons.Outlined.AutoAwesome, "tab_sola")
+    object Notes : Screen("الملاحظات", Icons.Filled.Description, Icons.Outlined.Description, "tab_notes")
 }
 
 class MainActivity : ComponentActivity() {
@@ -236,6 +240,7 @@ fun ScopeMainApp(
     var showSoundStudioSheet by remember { mutableStateOf(false) }
     var showAvatarStudio by remember { mutableStateOf(false) }
     var showDevPanel by remember { mutableStateOf(false) }
+    var showNotesScreen by remember { mutableStateOf(false) }
 
     // Data from ViewModel
     val userProfile by viewModel.userProfile.collectAsStateWithLifecycle()
@@ -304,7 +309,8 @@ fun ScopeMainApp(
         Screen.Schedule,
         Screen.Projects,
         Screen.Community,
-        Screen.Sola
+        Screen.Sola,
+        Screen.Notes
     )
 
     // Handle Back Press when in full overlays
@@ -314,6 +320,8 @@ fun ScopeMainApp(
         BackHandler { showProfileStudio = false }
     } else if (showSettingsScreen) {
         BackHandler { showSettingsScreen = false }
+    } else if (showNotesScreen) {
+        BackHandler { showNotesScreen = false }
     }
 
     // Determine screen-specific background drawable
@@ -517,6 +525,10 @@ fun ScopeMainApp(
                         )
                     }
 
+                    showNotesScreen -> {
+                        NotesScreen(viewModel = viewModel)
+                    }
+
                     else -> {
                         when (currentScreen) {
                             Screen.Home -> HomeScreen(
@@ -603,6 +615,7 @@ fun ScopeMainApp(
                                 onToggleHighThinking = { viewModel.toggleHighThinkingMode() },
                                 onSendMessage = { viewModel.sendSolaQuery(it) }
                             )
+                            Screen.Notes -> NotesScreen(viewModel = viewModel)
                         }
 
                         // Transparent Floating Sola Companion Layer (Border-free Overlay)
