@@ -69,11 +69,11 @@ class ScopeUpdateManager {
                 if (!jsonStr.isNullOrBlank()) {
                     val json = JSONObject(jsonStr)
                     return@withContext AppVersionConfig(
-                        latestVersionCode = json.optInt("versionCode", BuildConfig.VERSION_CODE),
-                        latestVersionName = json.optString("versionName", BuildConfig.VERSION_NAME),
-                        updateUrl = json.optString("downloadUrl", DEFAULT_RELEASES_URL),
+                        latestVersionCode = json.optInt("latestVersionCode", BuildConfig.VERSION_CODE),
+                        latestVersionName = json.optString("latestVersionName", BuildConfig.VERSION_NAME),
+                        updateUrl = json.optString("updateUrl", DEFAULT_RELEASES_URL),
                         releaseNotes = json.optString("releaseNotes", "تحديث جديد لنظام SCOPE."),
-                        forceUpdate = json.optBoolean("forceUpdate", false)
+                        forceUpdate = json.optBoolean("isForceUpdate", false)
                     )
                 }
             }
