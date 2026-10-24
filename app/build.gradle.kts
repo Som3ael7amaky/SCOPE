@@ -8,11 +8,58 @@ plugins {
   alias(libs.plugins.google.services)
 }
 
-// Auto-restore google-services.json if missing (e.g. after AI Studio sync/reset)
-val rootGoogleServices = rootProject.file("google-services.json")
-val appGoogleServices = file("google-services.json")
-if (rootGoogleServices.exists() && !appGoogleServices.exists()) {
-  rootGoogleServices.copyTo(appGoogleServices, overwrite = true)
+// Auto-generate google-services.json immediately at configuration time if missing
+val googleServicesFile = file("google-services.json")
+if (!googleServicesFile.exists()) {
+  googleServicesFile.writeText("""
+    {
+      "project_info": {
+        "project_number": "223806205027",
+        "project_id": "gen-lang-client-0043919264",
+        "storage_bucket": "gen-lang-client-0043919264.firebasestorage.app"
+      },
+      "client": [
+        {
+          "client_info": {
+            "mobilesdk_app_id": "1:223806205027:android:e03f45e9c13558b52f1c56",
+            "android_client_info": {
+              "package_name": "com.aistudio.scope.studentos"
+            }
+          },
+          "oauth_client": [
+            {
+              "client_id": "223806205027-7j0hurfer1eu9gf7t0ca2jd6j2supisg.apps.googleusercontent.com",
+              "client_type": 1,
+              "android_info": {
+                "package_name": "com.aistudio.scope.studentos",
+                "certificate_hash": "83f002e73f22369a766268c65d7b0ad45364da80"
+              }
+            },
+            {
+              "client_id": "223806205027-j3qbu3o44gfb4dkq52724io3vvco0vkf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ],
+          "api_key": [
+            {
+              "current_key": "AIzaSyBNXTPSe_2GSlRc2sV4NL2sFrdkPadAvhU"
+            }
+          ],
+          "services": {
+            "appinvite_service": {
+              "other_platform_oauth_client": [
+                {
+                  "client_id": "223806205027-j3qbu3o44gfb4dkq52724io3vvco0vkf.apps.googleusercontent.com",
+                  "client_type": 3
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "configuration_version": "1"
+    }
+  """.trimIndent())
 }
 
 android {
