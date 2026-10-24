@@ -126,7 +126,7 @@ fun ProjectsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(top = 12.dp, bottom = 88.dp),
+            contentPadding = PaddingValues(top = 14.dp, bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Workspace Hero Banner

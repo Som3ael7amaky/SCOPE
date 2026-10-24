@@ -292,69 +292,52 @@ class FirestoreRepository(
         doc.set(occurrence.copy(id = doc.id)).await()
     }
 
-    suspend fun seedInitialAcademicDataIfEmpty(userId: String, displayName: String, email: String) {
-        val subjectsSnap = userDoc(userId).collection("subjects").limit(1).get().await()
-        if (subjectsSnap.isEmpty) {
-            val isDev = com.example.data.model.isSuperDeveloperEmail(email)
-            // Seed Profile with starter economy and diagnostic defaults
-            val profile = UserProfile(
-                uid = userId,
-                email = email,
-                displayName = displayName.ifBlank { if (isDev) "المطور إسماعيل 👑" else "طالب SCOPE" },
-                scopeId = if (isDev) "@ismail_dev" else "@" + (displayName.filter { it.isLetterOrDigit() }.lowercase().ifBlank { "student" }) + "_" + (1000..9999).random(),
-                academicMajor = if (isDev) "هندسة النظم الفائقة والذكاء الاصطناعي (Super Dev)" else "هندسة البرمجيات والذكاء الاصطناعي",
-                university = if (isDev) "SCOPE Global Headquarters" else "جامعة الملك سعود",
-                academicYear = if (isDev) "Lead System Architect" else "السنة الثالثة",
-                language = "ar",
-                flameCount = if (isDev) 99 else 3,
-                sparks = if (isDev) 9999 else 180,
-                tokens = if (isDev) 999 else 25,
-                xp = if (isDev) 99990 else 640,
-                level = if (isDev) 99 else 4,
-                isPro = isDev,
-                isDeveloper = isDev,
-                customStatus = if (isDev) "👑 مؤسس منصة SCOPE والمهندس الرئيسي للنظام" else "طالب SCOPE طموح 🚀",
-                avatarId = if (isDev) "avatar_dev_crown" else "avatar_scholar_owl",
-                onboardingCompleted = isDev,
-                equippedFrame = "frame_cyber_neon",
-                equippedAura = "aura_solar_amber",
-                equippedTitle = if (isDev) "المطور الأسمى 👑" else "مهندس الخوارزميات",
-                equippedGlassFx = "glass_holographic",
-                unlockedItemIds = if (isDev) listOf(
-                    "frame_cyber_neon", "frame_default", "aura_solar_amber", "aura_default",
-                    "title_default", "glass_holographic", "glass_default", "avatar_dev_crown"
-                ) else listOf(
-                    "frame_cyber_neon", "frame_default", "aura_solar_amber", "aura_default",
-                    "title_default", "glass_holographic", "glass_default"
-                ),
-                unlockedBadgeIds = if (isDev) listOf(
-                    "badge_sys_creator", "badge_lead_architect", "badge_first_spark", "badge_streak_3", "badge_deep_dive"
-                ) else listOf("badge_first_spark", "badge_streak_3", "badge_deep_dive")
-            )
-            userDoc(userId).set(profile).await()
-
-            // Seed 3 realistic starter subjects
-            val s1 = Subject(name = "الخوارزميات وهياكل البيانات", code = "CS201", colorHex = "#2563EB", instructor = "د. طارق محمود", creditHours = 3)
-            val s2 = Subject(name = "أنظمة قواعد البيانات الموزعة", code = "CS310", colorHex = "#0284C7", instructor = "د. نادية حسن", creditHours = 3)
-            val s3 = Subject(name = "الذكاء الاصطناعي وتعلم الآلة", code = "AI401", colorHex = "#7C3AED", instructor = "د. حسام الشريف", creditHours = 4)
-
-            val s1Id = addSubject(userId, s1)
-            val s2Id = addSubject(userId, s2)
-            val s3Id = addSubject(userId, s3)
-
-            // Seed initial tasks
-            addTask(userId, Task(subjectId = s1Id, subjectName = s1.name, title = "حل مسألة شجرة البحث الثنائية (BST Balancing)", priority = TaskPriority.HIGH, effortMinutes = 45, signal = LearningSignal.NEEDS_REVIEW))
-            addTask(userId, Task(subjectId = s2Id, subjectName = s2.name, title = "تصميم مخطط قواعد البيانات (Firestore Schema Plan)", priority = TaskPriority.MEDIUM, effortMinutes = 60, signal = LearningSignal.UNDERSTOOD))
-            addTask(userId, Task(subjectId = s3Id, subjectName = s3.name, title = "مراجعة خوارزمية Gradient Descent والمصفوفات", priority = TaskPriority.HIGH, effortMinutes = 40, signal = LearningSignal.UNCLEAR))
-
-            // Seed initial upcoming exam
-            addExam(userId, Exam(subjectId = s1Id, subjectName = s1.name, title = "اختبار منتصف الفصل في الخوارزميات", weightPercentage = 25, topics = "Big-O, Sorting, Graphs, Heaps"))
-
-            // Seed initial schedule occurrences
-            addClassOccurrence(userId, ClassOccurrence(subjectId = s1Id, subjectName = s1.name, dayOfWeek = 1, startTime = "09:00", endTime = "10:30", room = "مدرج 3B", status = OccurrenceStatus.SCHEDULED))
-            addClassOccurrence(userId, ClassOccurrence(subjectId = s2Id, subjectName = s2.name, dayOfWeek = 1, startTime = "11:30", endTime = "13:00", room = "معمل البرمجيات 2", status = OccurrenceStatus.SCHEDULED))
-            addClassOccurrence(userId, ClassOccurrence(subjectId = s3Id, subjectName = s3.name, dayOfWeek = 2, startTime = "10:00", endTime = "11:30", room = "قاعة الندوات 1", status = OccurrenceStatus.SCHEDULED))
+    suspend fun getUserProfileOnce(userId: String): UserProfile? {
+        return try {
+            val snapshot = userDoc(userId).get().await()
+            if (snapshot.exists()) snapshot.toObject(UserProfile::class.java) else null
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "getUserProfileOnce error: ${e.message}", e)
+            null
         }
+    }
+
+    suspend fun createInitialUserProfile(userId: String, displayName: String, email: String) {
+        val isDev = com.example.data.model.isSuperDeveloperEmail(email)
+        val profile = UserProfile(
+            uid = userId,
+            email = email,
+            displayName = displayName.ifBlank { if (isDev) "المطور إسماعيل 👑" else "طالب SCOPE" },
+            scopeId = if (isDev) "@ismail_dev" else "@" + (displayName.filter { it.isLetterOrDigit() }.lowercase().ifBlank { "student" }) + "_" + (1000..9999).random(),
+            academicMajor = if (isDev) "هندسة النظم الفائقة والذكاء الاصطناعي (Super Dev)" else "هندسة البرمجيات",
+            university = if (isDev) "SCOPE Global Headquarters" else "جامعة",
+            academicYear = if (isDev) "Lead System Architect" else "السنة الأولى",
+            language = "ar",
+            flameCount = if (isDev) 99 else 0,
+            sparks = if (isDev) 99999 else 100,
+            tokens = if (isDev) 9999 else 20,
+            xp = if (isDev) 99990 else 0,
+            level = if (isDev) 99 else 1,
+            isPro = isDev,
+            isDeveloper = isDev,
+            customStatus = if (isDev) "👑 مؤسس منصة SCOPE والمهندس الرئيسي للنظام" else "طالب SCOPE طموح 🚀",
+            avatarId = if (isDev) "avatar_dev_crown" else "avatar_scholar_owl",
+            onboardingCompleted = true,
+            equippedFrame = if (isDev) "frame_cyber_neon" else "frame_default",
+            equippedAura = if (isDev) "aura_solar_amber" else "aura_default",
+            equippedTitle = if (isDev) "المطور الأسمى 👑" else "طالب مستكشف 🚀",
+            equippedGlassFx = if (isDev) "glass_holographic" else "glass_default",
+            unlockedItemIds = if (isDev) listOf(
+                "frame_cyber_neon", "frame_default", "aura_solar_amber", "aura_default",
+                "title_default", "glass_holographic", "glass_default", "avatar_dev_crown"
+            ) else listOf(
+                "frame_default", "aura_default", "title_default", "glass_default"
+            ),
+            unlockedBadgeIds = if (isDev) listOf(
+                "badge_sys_creator", "badge_lead_architect", "badge_first_spark", "badge_streak_3", "badge_deep_dive"
+            ) else listOf("badge_first_spark")
+        )
+        userDoc(userId).set(profile).await()
     }
 
     suspend fun updateAvatar(userId: String, avatarId: String, photoUrl: String = "") {
@@ -596,14 +579,26 @@ class FirestoreRepository(
     suspend fun wipeAcademicData(uid: String) {
         try {
             val userSubcoll = userDoc(uid)
-            val collections = listOf("subjects", "tasks", "exams", "studySessions", "occurrences")
+            val collections = listOf(
+                "subjects", "tasks", "exams", "studySessions", "occurrences",
+                "projects", "study_notes", "flashcards", "concept_maps", "feedbacks"
+            )
             for (col in collections) {
                 val snapshot = userSubcoll.collection(col).get().await()
                 for (doc in snapshot.documents) {
                     doc.reference.delete().await()
                 }
             }
-        } catch (_: Exception) {}
+            // Clear local Room database as well
+            try {
+                localDatabase?.studyNoteDao()?.clearAll()
+            } catch (_: Exception) {}
+            try {
+                com.example.data.local.ScopeDatabase.getInstance(com.example.ScopeApplication.instance).studyNoteDao().clearAll()
+            } catch (_: Exception) {}
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Wipe data error: ${e.message}", e)
+        }
     }
 
     fun getStudyNotes(userId: String): Flow<List<com.example.data.model.StudyNote>> = callbackFlow {

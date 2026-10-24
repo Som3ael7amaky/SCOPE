@@ -322,6 +322,8 @@ fun ScopeMainApp(
         BackHandler { showSettingsScreen = false }
     } else if (showNotesScreen) {
         BackHandler { showNotesScreen = false }
+    } else if (showProjectDetailModal) {
+        BackHandler { viewModel.closeProjectDetail() }
     }
 
     // Determine screen-specific background drawable
@@ -340,11 +342,14 @@ fun ScopeMainApp(
         bgResId = currentScreenBgRes,
         enable3dBackgrounds = enable3dBackgrounds
     ) {
+        val isOverlayActive = showSearchScreen || showProfileStudio || showSettingsScreen ||
+                showProjectDetailModal || showDevPanel || showNotesScreen
+
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             containerColor = Color.Transparent,
             topBar = {
-                if (!showSearchScreen && !showProfileStudio && !showSettingsScreen) {
+                if (!isOverlayActive) {
                     ScopeHeader(
                         userProfile = userProfile,
                         onOpenControlCenter = {
@@ -373,7 +378,7 @@ fun ScopeMainApp(
             },
 
             bottomBar = {
-                if (!showSearchScreen && !showProfileStudio && !showSettingsScreen) {
+                if (!isOverlayActive) {
                     NavigationBar(
                         modifier = Modifier
                             .navigationBarsPadding()
