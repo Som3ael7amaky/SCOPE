@@ -41,6 +41,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -72,7 +73,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.ui.theme.CairoFontFamily
-import com.example.ui.theme.PlusJakartaSansFamily
 import com.example.ui.theme.ScopeFocusGreen
 import com.example.ui.theme.ScopePrimary
 import com.example.ui.theme.ScopeWarningAmber
@@ -100,7 +100,7 @@ fun SignUpScreen(
     // Password strength calculation
     val passwordStrength = remember(password) {
         when {
-            password.length >= 8 && password.any { it.isDigit() } && password.any { it.isUpperCase() } -> 3 // Strong
+            password.length >= 8 && password.any { it.isDigit() } && password.any { it.isUpperCase() || !it.isLetterOrDigit() } -> 3 // Strong
             password.length >= 6 -> 2 // Medium
             password.length > 0 -> 1 // Weak
             else -> 0
@@ -124,8 +124,8 @@ fun SignUpScreen(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
+                        Color(0xFF0B0E14),
                         Color(0xFF0F172A),
-                        Color(0xFF070A12),
                         Color(0xFF030712)
                     )
                 )
@@ -138,7 +138,7 @@ fun SignUpScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 20.dp),
+                .padding(horizontal = 20.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Top Bar
@@ -149,7 +149,7 @@ fun SignUpScreen(
                 IconButton(
                     onClick = onBack,
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(44.dp)
                         .testTag("signup_back_btn")
                 ) {
                     Icon(
@@ -175,7 +175,7 @@ fun SignUpScreen(
             // Sola Mascot Icon
             Box(
                 modifier = Modifier
-                    .size(80.dp)
+                    .size(76.dp)
                     .offset(y = floatOffsetY.dp)
                     .clip(CircleShape)
                     .background(
@@ -190,14 +190,14 @@ fun SignUpScreen(
                     painter = painterResource(id = R.drawable.sola_happy),
                     contentDescription = "Sola Mascot",
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.size(66.dp)
+                    modifier = Modifier.size(62.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "انضم إلى SCOPE وابدأ رحلتك الأكاديمية",
+                text = "انضم إلى SCOPE وابدأ رحلتك الأكاديمية الذكية",
                 fontFamily = CairoFontFamily,
                 fontWeight = FontWeight.Medium,
                 fontSize = 12.sp,
@@ -207,33 +207,88 @@ fun SignUpScreen(
                 overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Frosted Card
+            // Quick Google Sign-In Option
+            Button(
+                onClick = onSignInWithGoogle,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .testTag("signup_google_btn"),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White,
+                    contentColor = Color(0xFF1E293B)
+                )
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(text = "🌐", fontSize = 16.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "التسجيل السريع بحساب Google",
+                        fontFamily = CairoFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = Color(0xFF0F172A)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Divider
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                HorizontalDivider(
+                    modifier = Modifier.weight(1f),
+                    color = Color(0xFF334155).copy(alpha = 0.6f)
+                )
+                Text(
+                    text = "أو إنشاء حساب بالبريد",
+                    fontFamily = CairoFontFamily,
+                    fontSize = 11.sp,
+                    color = Color(0xFF64748B),
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
+                HorizontalDivider(
+                    modifier = Modifier.weight(1f),
+                    color = Color(0xFF334155).copy(alpha = 0.6f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Frosted Card Form
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF121826).copy(alpha = 0.78f)),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF334155).copy(alpha = 0.6f))
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A).copy(alpha = 0.94f)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF334155).copy(alpha = 0.7f))
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     if (!errorMessage.isNullOrBlank()) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1014)),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF3B1219)),
                             border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.6f))
                         ) {
                             Text(
                                 text = errorMessage,
                                 fontFamily = CairoFontFamily,
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 color = Color(0xFFFECDD3),
                                 modifier = Modifier.padding(12.dp),
                                 maxLines = 3,
@@ -245,7 +300,7 @@ fun SignUpScreen(
                     OutlinedTextField(
                         value = fullName,
                         onValueChange = { fullName = it },
-                        label = { Text("الاسم الكامل", fontFamily = CairoFontFamily) },
+                        label = { Text("الاسم الكامل", fontFamily = CairoFontFamily, fontSize = 12.sp) },
                         leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF38BDF8)) },
                         singleLine = true,
                         modifier = Modifier
@@ -265,7 +320,7 @@ fun SignUpScreen(
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
-                        label = { Text("البريد الإلكتروني الأكاديمي", fontFamily = CairoFontFamily) },
+                        label = { Text("البريد الإلكتروني الأكاديمي", fontFamily = CairoFontFamily, fontSize = 12.sp) },
                         leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFF38BDF8)) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -286,7 +341,7 @@ fun SignUpScreen(
                     OutlinedTextField(
                         value = major,
                         onValueChange = { major = it },
-                        label = { Text("التخصص الأكاديمي", fontFamily = CairoFontFamily) },
+                        label = { Text("التخصص الأكاديمي", fontFamily = CairoFontFamily, fontSize = 12.sp) },
                         leadingIcon = { Icon(Icons.Default.School, contentDescription = null, tint = Color(0xFF38BDF8)) },
                         singleLine = true,
                         modifier = Modifier
@@ -306,7 +361,7 @@ fun SignUpScreen(
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = { Text("كلمة المرور", fontFamily = CairoFontFamily) },
+                        label = { Text("كلمة المرور", fontFamily = CairoFontFamily, fontSize = 12.sp) },
                         leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF38BDF8)) },
                         trailingIcon = {
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -350,7 +405,7 @@ fun SignUpScreen(
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(5.dp)
+                                        .height(4.dp)
                                         .clip(RoundedCornerShape(3.dp))
                                         .background(
                                             if (active) {
@@ -389,10 +444,14 @@ fun SignUpScreen(
                     ) {
                         Checkbox(
                             checked = agreedToTerms,
-                            onCheckedChange = { agreedToTerms = it }
+                            onCheckedChange = { agreedToTerms = it },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = Color(0xFF38BDF8),
+                                uncheckedColor = Color(0xFF64748B)
+                            )
                         )
                         Text(
-                            text = "أوافق على شروط وأحكام الاستخدام والخصوصية",
+                            text = "أوافق على شروط الاستخدام والخصوصية",
                             fontFamily = CairoFontFamily,
                             fontSize = 11.sp,
                             color = Color.White,
@@ -410,19 +469,22 @@ fun SignUpScreen(
                         enabled = !isSigningIn && email.isNotBlank() && password.isNotBlank() && fullName.isNotBlank() && agreedToTerms,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp)
+                            .height(48.dp)
                             .testTag("signup_submit_btn"),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF38BDF8))
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF38BDF8),
+                            disabledContainerColor = Color(0xFF1E293B)
+                        )
                     ) {
                         if (isSigningIn) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.Black)
+                            CircularProgressIndicator(modifier = Modifier.size(22.dp), color = Color.Black, strokeWidth = 2.5.dp)
                         } else {
                             Text(
                                 text = "إنشاء الحساب",
                                 fontFamily = CairoFontFamily,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
+                                fontSize = 13.sp,
                                 color = Color.Black,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis

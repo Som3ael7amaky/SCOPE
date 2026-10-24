@@ -128,6 +128,25 @@ class MainActivity : ComponentActivity() {
 
                     val startupError by viewModel.startupError.collectAsStateWithLifecycle()
 
+                    val googleSignInIntentToLaunch by viewModel.googleSignInIntentToLaunch.collectAsStateWithLifecycle()
+
+                    val googleSignInLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                        contract = androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+                    ) { result ->
+                        if (result.resultCode == android.app.Activity.RESULT_OK) {
+                            viewModel.handleGoogleSignInResult(result.data)
+                        } else {
+                            viewModel.onGoogleSignInCancelled()
+                        }
+                    }
+
+                    LaunchedEffect(googleSignInIntentToLaunch) {
+                        googleSignInIntentToLaunch?.let { intent ->
+                            googleSignInLauncher.launch(intent)
+                            viewModel.clearGoogleSignInIntent()
+                        }
+                    }
+
                     if (currentUser == null && !isGuestMode) {
                         AuthFlowNavigator(
                             isSigningIn = isSigningIn,

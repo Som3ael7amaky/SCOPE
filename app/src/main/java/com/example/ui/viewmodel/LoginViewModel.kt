@@ -8,10 +8,12 @@ import com.example.data.model.UserProfile
 import com.example.data.repository.AuthRepository
 import com.example.data.repository.FirestoreRepository
 import com.google.firebase.auth.FirebaseUser
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private const val TAG_AUTH = "AuthException"
 
@@ -42,20 +44,65 @@ class LoginViewModel(
                 if (result.isSuccess) {
                     val user = result.getOrNull()!!
                     Log.i(TAG_AUTH, "LoginViewModel: Google Sign-In succeeded for user=${user.uid}, email=${user.email}")
-
-                    // Check & Elevate Super Admin if email is ismailhamaky@gmail.com
                     checkAndElevateSuperAdmin(user)
-
                     _uiState.value = AuthUiState.Success(user)
                 } else {
                     val ex = result.exceptionOrNull()
                     val errorMsg = ex?.message ?: "فشل تسجيل الدخول بواسطة Google"
-                    Log.e(TAG_AUTH, "LoginViewModel: Google Sign-In failed with message: $errorMsg", ex)
+                    Log.e(TAG_AUTH, "LoginViewModel: Google Sign-In failed: $errorMsg", ex)
                     _uiState.value = AuthUiState.Error(errorMsg)
                 }
             } catch (e: Exception) {
                 Log.e(TAG_AUTH, "LoginViewModel: Unhandled exception in signInWithGoogle: ${e.message}", e)
                 _uiState.value = AuthUiState.Error(e.message ?: "حدث خطأ غير متوقع أثناء تسجيل الدخول")
+            }
+        }
+    }
+
+    fun signInWithEmail(email: String, pass: String) {
+        viewModelScope.launch {
+            _uiState.value = AuthUiState.Loading
+            Log.i(TAG_AUTH, "LoginViewModel: Starting signInWithEmail flow for $email")
+            try {
+                val result = authRepository.signInWithEmail(email, pass)
+                if (result.isSuccess) {
+                    val user = result.getOrNull()!!
+                    Log.i(TAG_AUTH, "LoginViewModel: Email Sign-In succeeded for user=${user.uid}")
+                    checkAndElevateSuperAdmin(user)
+                    _uiState.value = AuthUiState.Success(user)
+                } else {
+                    val ex = result.exceptionOrNull()
+                    val errorMsg = ex?.message ?: "فشل تسجيل الدخول، تحقق من البريد الإلكتروني وكلمة المرور"
+                    Log.e(TAG_AUTH, "LoginViewModel: Email Sign-In failed: $errorMsg", ex)
+                    _uiState.value = AuthUiState.Error(errorMsg)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG_AUTH, "LoginViewModel: Unhandled exception in signInWithEmail: ${e.message}", e)
+                _uiState.value = AuthUiState.Error(e.message ?: "حدث خطأ غير متوقع أثناء تسجيل الدخول")
+            }
+        }
+    }
+
+    fun signUpWithEmail(email: String, pass: String, displayName: String) {
+        viewModelScope.launch {
+            _uiState.value = AuthUiState.Loading
+            Log.i(TAG_AUTH, "LoginViewModel: Starting signUpWithEmail flow for $email")
+            try {
+                val result = authRepository.signUpWithEmail(email, pass, displayName)
+                if (result.isSuccess) {
+                    val user = result.getOrNull()!!
+                    Log.i(TAG_AUTH, "LoginViewModel: Email Sign-Up succeeded for user=${user.uid}")
+                    checkAndElevateSuperAdmin(user)
+                    _uiState.value = AuthUiState.Success(user)
+                } else {
+                    val ex = result.exceptionOrNull()
+                    val errorMsg = ex?.message ?: "فشل إنشاء الحساب، يرجى المحاولة لاحقاً"
+                    Log.e(TAG_AUTH, "LoginViewModel: Email Sign-Up failed: $errorMsg", ex)
+                    _uiState.value = AuthUiState.Error(errorMsg)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG_AUTH, "LoginViewModel: Unhandled exception in signUpWithEmail: ${e.message}", e)
+                _uiState.value = AuthUiState.Error(e.message ?: "حدث خطأ غير متوقع أثناء إنشاء الحساب")
             }
         }
     }

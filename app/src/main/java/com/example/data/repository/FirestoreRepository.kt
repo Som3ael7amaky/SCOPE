@@ -297,8 +297,14 @@ class FirestoreRepository(
             val snapshot = userDoc(userId).get().await()
             if (snapshot.exists()) snapshot.toObject(UserProfile::class.java) else null
         } catch (e: Exception) {
-            Log.e("FirestoreRepository", "getUserProfileOnce error: ${e.message}", e)
-            null
+            Log.w("FirestoreRepository", "getUserProfileOnce default fetch failed (${e.message}), attempting cache fallback...")
+            try {
+                val cacheSnapshot = userDoc(userId).get(com.google.firebase.firestore.Source.CACHE).await()
+                if (cacheSnapshot.exists()) cacheSnapshot.toObject(UserProfile::class.java) else null
+            } catch (cacheEx: Exception) {
+                Log.w("FirestoreRepository", "getUserProfileOnce cache fallback error: ${cacheEx.message}")
+                null
+            }
         }
     }
 
