@@ -9,6 +9,9 @@ class ScopeApplication : Application() {
     companion object {
         private const val TAG = "ScopeApplication"
 
+        lateinit var instance: ScopeApplication
+            private set
+
         @Volatile
         var isFirebaseInitialized: Boolean = false
             private set
@@ -20,6 +23,7 @@ class ScopeApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        instance = this
         setupGlobalExceptionHandler()
         initFirebaseSafely()
     }

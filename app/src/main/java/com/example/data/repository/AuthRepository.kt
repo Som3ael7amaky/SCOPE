@@ -192,6 +192,19 @@ class AuthRepository(
         }
     }
 
+    suspend fun signInAnonymously(): Result<FirebaseUser> {
+        return try {
+            val user = withTimeout(20_000L) {
+                val result = auth.signInAnonymously().await()
+                result.user ?: throw IllegalStateException("فشل تسجيل الدخول المجهول (Guest Auth)")
+            }
+            Result.success(user)
+        } catch (e: Exception) {
+            Log.e("AuthRepository", "Anonymous sign-in failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     fun signOut() {
         auth.signOut()
     }

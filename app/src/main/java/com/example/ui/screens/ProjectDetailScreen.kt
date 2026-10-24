@@ -12,11 +12,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -58,6 +61,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -141,19 +145,20 @@ fun ProjectDetailScreen(
     var showReportModal by remember { mutableStateOf(false) }
     var selectedMemberForRole by remember { mutableStateOf<ProjectMember?>(null) }
 
-    Surface(
+    Scaffold(
         modifier = modifier
             .fillMaxSize()
             .testTag("project_detail_screen"),
-        color = Color(0xFF030712) // Dark Obsidian
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        containerColor = Color(0xFF030712), // Dark Obsidian
+        contentWindowInsets = WindowInsets.systemBars,
+        topBar = {
             // Header Top Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color(0xFF0B1329))
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                    .statusBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
@@ -279,7 +284,13 @@ fun ProjectDetailScreen(
                     }
                 }
             }
-
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
             // Glassmorphic Horizontal Multi-Tab Selector (7 Tabs)
             LazyRow(
                 modifier = Modifier

@@ -125,15 +125,23 @@ class ScopeViewModel(
                             launch {
                                 try {
                                     firestoreRepository.getUserProfile(user.uid).collect { profile ->
+                                        val isDev = com.example.data.model.isSuperDeveloperEmail(user.email) ||
+                                                com.example.data.model.isSuperDeveloperEmail(profile?.email)
                                         if (profile != null) {
-                                            val isDev = com.example.data.model.isSuperDeveloperEmail(profile.email)
                                             val resolved = if (isDev) {
                                                 profile.copy(
                                                     isDeveloper = true,
-                                                    equippedTitle = "المطور الأسمى 👑"
+                                                    isPro = true,
+                                                    equippedTitle = "المطور الأسمى 👑",
+                                                    sparks = if (profile.sparks < 99999) 99999 else profile.sparks,
+                                                    tokens = if (profile.tokens < 9999) 9999 else profile.tokens,
+                                                    level = if (profile.level < 99) 99 else profile.level
                                                 )
                                             } else profile
                                             _userProfile.value = resolved
+                                            if (isDev && (!profile.isDeveloper || !profile.isPro)) {
+                                                firestoreRepository.saveUserProfile(resolved)
+                                            }
                                         } else {
                                             _userProfile.value = null
                                         }
@@ -153,20 +161,21 @@ class ScopeViewModel(
                             launch {
                                 try {
                                     firestoreRepository.getProjects(user.uid).collect { list ->
-                                        if (list.isNotEmpty()) {
-                                            _projects.value = list
-                                            if (_activeProject.value == null || !list.any { it.id == _activeProject.value?.id }) {
-                                                _activeProject.value = list.firstOrNull()
-                                            }
+                                        _projects.value = list
+                                        if (_activeProject.value == null || !list.any { it.id == _activeProject.value?.id }) {
+                                            _activeProject.value = list.firstOrNull()
                                         }
                                     }
                                 } catch (_: Exception) {}
                             }
                             
                             try {
-                                firestoreRepository.seedInitialAcademicDataIfEmpty(user.uid, user.displayName ?: "", user.email ?: "")
+                                val existingProfile = firestoreRepository.getUserProfileOnce(user.uid)
+                                if (existingProfile == null) {
+                                    firestoreRepository.createInitialUserProfile(user.uid, user.displayName ?: "", user.email ?: "")
+                                }
                             } catch (e: Exception) {
-                                android.util.Log.e("ScopeViewModel", "Seed initial data error: ${e.message}", e)
+                                android.util.Log.e("ScopeViewModel", "Create initial profile error: ${e.message}", e)
                             }
                         } catch (e: Exception) {
                             android.util.Log.e("ScopeViewModel", "Firebase user session sync error: ${e.message}", e)
@@ -827,14 +836,36 @@ class ScopeViewModel(
     val signInError: StateFlow<String?> = _signInError.asStateFlow()
 
     fun continueAsGuest() {
-        _isGuestMode.value = true
-        _userProfile.value = UserProfile(
-            uid = "guest_user",
-            displayName = "زائر SCOPE",
-            scopeId = "@guest",
-            academicMajor = "تصفح استكشافي",
-            equippedTitle = "طالب مستكشف 🚀"
-        )
+        viewModelScope.launch {
+            _isSigningIn.value = true
+            _signInError.value = null
+            try {
+                val res = authRepository.signInAnonymously()
+                if (res.isSuccess) {
+                    _isGuestMode.value = false
+                } else {
+                    _isGuestMode.value = true
+                    _userProfile.value = UserProfile(
+                        uid = "guest_user",
+                        displayName = "زائر SCOPE",
+                        scopeId = "@guest",
+                        academicMajor = "تصفح استكشافي",
+                        equippedTitle = "طالب مستكشف 🚀"
+                    )
+                }
+            } catch (e: Exception) {
+                _isGuestMode.value = true
+                _userProfile.value = UserProfile(
+                    uid = "guest_user",
+                    displayName = "زائر SCOPE",
+                    scopeId = "@guest",
+                    academicMajor = "تصفح استكشافي",
+                    equippedTitle = "طالب مستكشف 🚀"
+                )
+            } finally {
+                _isSigningIn.value = false
+            }
+        }
     }
 
     fun signInWithGoogle(context: Context) {
@@ -1230,18 +1261,24 @@ class ScopeViewModel(
     }
 
     fun wipeData() {
-        currentUser.value?.let { user ->
-            viewModelScope.launch {
-                firestoreRepository.wipeAcademicData(user.uid)
-            }
-        } ?: run {
-            if (_isGuestMode.value) {
+        viewModelScope.launch {
+            try {
+                // Instantly wipe all in-memory collections for a 100% clean slate
                 _subjects.value = emptyList()
                 _tasks.value = emptyList()
                 _exams.value = emptyList()
                 _studySessions.value = emptyList()
                 _occurrences.value = emptyList()
                 _studyNotes.value = emptyList()
+                _projects.value = emptyList()
+                _activeProject.value = null
+                _flashcards.value = emptyList()
+                _conceptMaps.value = emptyList()
+
+                val uid = currentUser.value?.uid ?: "guest"
+                firestoreRepository.wipeAcademicData(uid)
+            } catch (e: Exception) {
+                android.util.Log.e("ScopeViewModel", "Wipe data error: ${e.message}", e)
             }
         }
     }
