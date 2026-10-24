@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "223806205027-7j0hurfer1eu9gf7t0ca2jd6j2supisg.apps.googleusercontent.com",
+          "client_id": "223806205027-i6iib6s33ral65u73gsp3cdcn423oth5.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.aistudio.scope.studentos",
-            "certificate_hash": "83f002e73f22369a766268c65d7b0ad45364da80"
+            "certificate_hash": "58119be87df475de69c4b1fb6a94fadcfad876e9"
           }
         },
         {
